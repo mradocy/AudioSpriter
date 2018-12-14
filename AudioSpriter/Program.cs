@@ -38,6 +38,7 @@ namespace AudioSpriter {
                 Console.WriteLine("Other args:");
                 Console.WriteLine("- Set directory to place the .wav versions of the audio sprites: -w ./wavDirectory");
                 Console.WriteLine("- Set maximum length of an audio sprite (in seconds): -max 600");
+                Console.WriteLine("- Set file path of ffmpeg used to convert to .ogg: -ff \"../some/directory/ffmpeg.exe\"");
 
                 Console.ReadLine();
                 return;
@@ -52,6 +53,7 @@ namespace AudioSpriter {
             string destination = "";
             string baseFileName = "audioSprite";
             string wavsDirectory = "./wav-audiosprites";
+            string ffmpegFilePath = "ffmpeg.exe";
             int sampleRate = 44100;
             int numChannels = 1;
             double spacingDuration = .1;
@@ -72,6 +74,8 @@ namespace AudioSpriter {
                     }
                 } else if (arg == "-w") {
                     wavsDirectory = i + 1 < args.Length ? args[i + 1] : "";
+                } else if (arg == "-ff") {
+                    ffmpegFilePath = i + 1 < args.Length ? args[i + 1] : "";
                 }
             }
 
@@ -102,6 +106,14 @@ namespace AudioSpriter {
                 error = true;
             }
 
+            if (ffmpegFilePath == "") {
+                Console.WriteLine("Must know location of ffmpeg.exe");
+                error = true;
+            } else if (!File.Exists(ffmpegFilePath)) {
+                Console.WriteLine(ffmpegFilePath + " does not exist.");
+                error = true;
+            }
+
             if (error) {
                 Console.ReadLine();
                 return;
@@ -109,7 +121,7 @@ namespace AudioSpriter {
 
             Directory.CreateDirectory(wavsDirectory);
 
-            createAudioSprites(source, destination, baseFileName, wavsDirectory, sampleRate, numChannels, spacingDuration, maxAudioSpriteDuration);
+            createAudioSprites(source, destination, baseFileName, wavsDirectory, ffmpegFilePath, sampleRate, numChannels, spacingDuration, maxAudioSpriteDuration);
 
             Console.ReadLine();
 
@@ -129,7 +141,7 @@ namespace AudioSpriter {
             }
         }
 
-        public static void createAudioSprites(string sourceDirectory, string destinationDirectory, string baseFileName, string wavsDirectory, int sampleRate, int numChannels, double spacingDuration, double maxAudioSpriteDuration) {
+        public static void createAudioSprites(string sourceDirectory, string destinationDirectory, string baseFileName, string wavsDirectory, string ffmpegFilePath, int sampleRate, int numChannels, double spacingDuration, double maxAudioSpriteDuration) {
 
             string[] inputFiles = Directory.GetFiles(sourceDirectory, "*.wav", SearchOption.AllDirectories);
             if (inputFiles.Length <= 0) {
@@ -194,7 +206,7 @@ namespace AudioSpriter {
 
                 if (siSetDuration + si.duration + spacingDuration > maxAudioSpriteDuration) {
                     // sound doesn't fit.  Turn current set into an audio sprite and reset
-                    createAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, wavsDirectory, spacingDuration);
+                    createAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, ffmpegFilePath, wavsDirectory, spacingDuration);
                     siSet.Clear();
                     siSetDuration = spacingDuration;
                     audioSpriteCount++;
@@ -208,7 +220,7 @@ namespace AudioSpriter {
                 
             }
             // create last audio sprite
-            createAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, wavsDirectory, spacingDuration);
+            createAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, ffmpegFilePath, wavsDirectory, spacingDuration);
 
             foreach (AudioFileReader audioReader in audioReaders) {
                 audioReader.Dispose();
@@ -260,7 +272,7 @@ namespace AudioSpriter {
             
         }
 
-        private static void createAudioSprite(List<SoundInfo> soundInfos, int audioSpriteIndex, string destinationDirectory, string baseFileName, string wavsDirectory, double spacingDuration) {
+        private static void createAudioSprite(List<SoundInfo> soundInfos, int audioSpriteIndex, string destinationDirectory, string baseFileName, string ffmpegFilePath, string wavsDirectory, double spacingDuration) {
             
             string fileNameNoExt = baseFileName + "_" + audioSpriteIndex;
             Console.WriteLine(fileNameNoExt + ":");
@@ -292,7 +304,7 @@ namespace AudioSpriter {
             createMp3File(concatMp3, mp3File);
             string oggFile = Path.Combine(destinationDirectory, fileNameNoExt + ".ogg");
             string wavFile = Path.Combine(wavsDirectory, fileNameNoExt + ".wav");
-            createOggFile(concatOgg, wavFile, oggFile);
+            createOggFile(concatOgg, ffmpegFilePath, wavFile, oggFile);
 
         }
 
@@ -335,7 +347,7 @@ namespace AudioSpriter {
 
         }
 
-        private static void createOggFile(ISampleProvider provider, string wavFileName, string oggFileName) {
+        private static void createOggFile(ISampleProvider provider, string ffmpegFilePath, string wavFileName, string oggFileName) {
             
             string fullWavName = Path.GetFullPath(wavFileName);
             string fullOggName = Path.GetFullPath(oggFileName);
@@ -344,7 +356,7 @@ namespace AudioSpriter {
             WaveFileWriter.CreateWaveFile16(fullWavName, provider);
 
             // use external ffmpeg to convert to .ogg
-            string strCmdText = "/C " + "ffmpeg -i \"" + fullWavName + "\" -c:a libvorbis -qscale:a 6 -y \"" + fullOggName + "\"";
+            string strCmdText = "/C call " + '\"' + ffmpegFilePath + '\"' +  " -i \"" + fullWavName + "\" -c:a libvorbis -qscale:a 6 -y \"" + fullOggName + "\"";
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             //startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
