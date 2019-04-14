@@ -15,6 +15,7 @@
 # Build-related files
 [Oo]bj/
 [Ll]og/
+*.exe
 *.exe.config
 *.exe.manifest
 
