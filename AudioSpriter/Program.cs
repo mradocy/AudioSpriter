@@ -36,7 +36,7 @@ namespace AudioSpriter {
         /// <summary>
         /// Default max duration of audio sprites (in seconds).
         /// </summary>
-        const float DEFAULT_AUDIO_SPRITE_MAX_DURATION = 600;
+        const double DEFAULT_AUDIO_SPRITE_MAX_DURATION = 600;
 
         /// <summary>
         /// Default location of ffmpeg.exe
@@ -51,7 +51,7 @@ namespace AudioSpriter {
             cmdService.RegisterArg("-s", CommandParamType.ExistingDirectory, "./sourceDirectory", true, "The source directory containing the .wav files.");
             cmdService.RegisterArg("-d", CommandParamType.ExistingDirectory, "D:/some/output/directory", true, "Output directory to place the created audio sprites and .json info files.");
             cmdService.RegisterArg("-w", CommandParamType.Directory, ".wavDirectory", false, $"Directory to place the .wav versions of the audio sprites.  Default is {DEFAULT_WAV_DIRECTORY}");
-            cmdService.RegisterArg("-max", CommandParamType.Float, "600", false, $"Sets maximum length of an audio sprite.  Default is {DEFAULT_AUDIO_SPRITE_MAX_DURATION}");
+            cmdService.RegisterArg("-max", CommandParamType.Double, "600", false, $"Sets maximum length of an audio sprite.  Default is {DEFAULT_AUDIO_SPRITE_MAX_DURATION}");
             cmdService.RegisterArg("-ff", CommandParamType.ExistingFilePath, "tools/ffmpeg.exe", false, $"Sets location of ffmpeg.exe, program used to convert .mp3 to .ogg.  Default is {DEFAULT_FFMPEG_FILE}");
 
             if (!cmdService.Process(args))
@@ -80,7 +80,7 @@ namespace AudioSpriter {
             int sampleRate = 44100;
             int numChannels = 1;
             double spacingDuration = .1;
-            double maxAudioSpriteDuration = cmdService.GetArgValueFloat("-max", DEFAULT_AUDIO_SPRITE_MAX_DURATION);
+            double maxAudioSpriteDuration = cmdService.GetArgValueDouble("-max", DEFAULT_AUDIO_SPRITE_MAX_DURATION);
 
             bool error = false;
             if (spacingDuration <= MP3_DELAY) {
