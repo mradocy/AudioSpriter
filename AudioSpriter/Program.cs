@@ -5,6 +5,9 @@ using NAudio.Wave.SampleProviders;
 using System.IO;
 using NAudio.MediaFoundation;
 using System.Web.Script.Serialization;
+using Core.Base.Services;
+using Core.Base.Services.Implementations;
+using Core.Base;
 
 // https://github.com/naudio/NAudio
 
@@ -17,100 +20,71 @@ Takes all .wav files in the source directory, makes audio sprites and a json fil
 
 */
 
+// -s ../../Test/inputs -d ../../Test/outputs -w ../../Test/wav-audiosprites -max 60 -ff "D:/Mark/Gamedev/Tools/ffmpeg/ffmpeg.exe"
+
 namespace AudioSpriter {
 
     class Program {
 
         const double MP3_DELAY = .0269; // (not exactly the same as 1056d / 44100)
 
+        /// <summary>
+        /// Default directory to place .wav versions of audio sprites.
+        /// </summary>
+        const string DEFAULT_WAV_DIRECTORY = "./wav-audiosprites";
+
+        /// <summary>
+        /// Default max duration of audio sprites (in seconds).
+        /// </summary>
+        const float DEFAULT_AUDIO_SPRITE_MAX_DURATION = 600;
+
+        /// <summary>
+        /// Default location of ffmpeg.exe
+        /// </summary>
+        const string DEFAULT_FFMPEG_FILE = "./ffmpeg.exe";
+
         public static void Main(string[] args) {
 
-            if (args.Length <= 0) {
+            // command line processing
 
-                Console.Clear();
-                Console.WriteLine("AudioSpriter");
-                Console.WriteLine();
-                Console.WriteLine("audiospriter -s ./sourceDirectory -d \"D:/some/output/directory\"");
-                Console.WriteLine();
-                Console.WriteLine("- Finds all .wav files in the source directory,\n  then in the destination directory makes audio sprites and a .json of info for them.");
-                Console.WriteLine("- All .wav files must have a sample rate of 44100 and be mono channel.");
-                Console.WriteLine();
-                Console.WriteLine("Other args:");
-                Console.WriteLine("- Set directory to place the .wav versions of the audio sprites: -w ./wavDirectory");
-                Console.WriteLine("- Set maximum length of an audio sprite (in seconds): -max 600");
-                Console.WriteLine("- Set file path of ffmpeg used to convert to .ogg: -ff \"../some/directory/ffmpeg.exe\"");
+            ICommandLineService cmdService = new CommandLineService();
+            cmdService.RegisterArg("-s", CommandParamType.ExistingDirectory, "./sourceDirectory", true, "The source directory containing the .wav files.");
+            cmdService.RegisterArg("-d", CommandParamType.ExistingDirectory, "D:/some/output/directory", true, "Output directory to place the created audio sprites and .json info files.");
+            cmdService.RegisterArg("-w", CommandParamType.Directory, ".wavDirectory", false, $"Directory to place the .wav versions of the audio sprites.  Default is {DEFAULT_WAV_DIRECTORY}");
+            cmdService.RegisterArg("-max", CommandParamType.Float, "600", false, $"Sets maximum length of an audio sprite.  Default is {DEFAULT_AUDIO_SPRITE_MAX_DURATION}");
+            cmdService.RegisterArg("-ff", CommandParamType.ExistingFilePath, "tools/ffmpeg.exe", false, $"Sets location of ffmpeg.exe, program used to convert .mp3 to .ogg.  Default is {DEFAULT_FFMPEG_FILE}");
 
-                Console.ReadLine();
+            if (!cmdService.Process(args))
+            {
+                ConsoleUtils.PauseIfConsoleWillBeDestroyed();
+                return;
+            }
+            if (cmdService.GetHelpRequested())
+            {
+                cmdService.DisplayHelpScreen();
+                ConsoleUtils.PauseIfConsoleWillBeDestroyed();
                 return;
             }
 
-            Console.WriteLine("AudioSpriter Start:");
-            Console.WriteLine();
+            // starting audio spriter
+
+            ConsoleUtils.WriteProgramStart("AudioSpriter");
 
             MediaFoundationApi.Startup(); // for creating mp3s
 
-            string source = "";
-            string destination = "";
+            string source = cmdService.GetArgValue("-s");
+            string destination = cmdService.GetArgValue("-d");
             string baseFileName = "audioSprite";
-            string wavsDirectory = "./wav-audiosprites";
-            string ffmpegFilePath = "ffmpeg.exe";
+            string wavsDirectory = cmdService.GetArgValue("-w", DEFAULT_WAV_DIRECTORY);
+            string ffmpegFilePath = cmdService.GetArgValue("-ff", "ffmpeg.exe");
             int sampleRate = 44100;
             int numChannels = 1;
             double spacingDuration = .1;
-            double maxAudioSpriteDuration = 600;
-
-            string str = "";
-            for (int i = 0; i < args.Length; i++) {
-                string arg = args[i];
-                if (arg == "-s") {
-                    source = i + 1 < args.Length ? args[i + 1] : "";
-                } else if (arg == "-d") {
-                    destination = i + 1 < args.Length ? args[i + 1] : "";
-                } else if (arg == "-max") {
-                    str = i + 1 < args.Length ? args[i + 1] : "";
-                    double outD = 0;
-                    if (double.TryParse(str, out outD)) {
-                        maxAudioSpriteDuration = outD;
-                    }
-                } else if (arg == "-w") {
-                    wavsDirectory = i + 1 < args.Length ? args[i + 1] : "";
-                } else if (arg == "-ff") {
-                    ffmpegFilePath = i + 1 < args.Length ? args[i + 1] : "";
-                }
-            }
+            double maxAudioSpriteDuration = cmdService.GetArgValueFloat("-max", DEFAULT_AUDIO_SPRITE_MAX_DURATION);
 
             bool error = false;
-            if (source == "") {
-                Console.WriteLine("Must specify source with -s ./sourceDirectory");
-                error = true;
-            } else if (!Directory.Exists(source)) {
-                Console.WriteLine("Source directory " + source + " doesn't exist.");
-                error = true;
-            }
-            
-            if (destination == "") {
-                Console.WriteLine("Must specifiy destination with -d \"D:/some/output/directory\"");
-                error = true;
-            } else if (!Directory.Exists(destination)) {
-                Console.WriteLine("Destination directory " + destination + " doesn't exist.");
-                error = true;
-            }
-
-            if (wavsDirectory == "") {
-                Console.WriteLine("Must have a valid directory to place .wav versions of the audio sprites.");
-                error = true;
-            }
-
             if (spacingDuration <= MP3_DELAY) {
                 Console.WriteLine("Spacing duration must be longer than " + MP3_DELAY + ".");
-                error = true;
-            }
-
-            if (ffmpegFilePath == "") {
-                Console.WriteLine("Must know location of ffmpeg.exe");
-                error = true;
-            } else if (!File.Exists(ffmpegFilePath)) {
-                Console.WriteLine(ffmpegFilePath + " does not exist.");
                 error = true;
             }
 
@@ -123,8 +97,8 @@ namespace AudioSpriter {
 
             createAudioSprites(source, destination, baseFileName, wavsDirectory, ffmpegFilePath, sampleRate, numChannels, spacingDuration, maxAudioSpriteDuration);
 
-            Console.ReadLine();
-
+            ConsoleUtils.WriteProgramEnd("AudioSpriter");
+            ConsoleUtils.PauseIfConsoleWillBeDestroyed();
         }
 
         public class SoundInfo {
@@ -277,7 +251,7 @@ namespace AudioSpriter {
             string fileNameNoExt = baseFileName + "_" + audioSpriteIndex;
             Console.WriteLine(fileNameNoExt + ":");
             foreach (SoundInfo si in soundInfos) {
-                Console.WriteLine("- " + si.displayFilename + " start time: " + si.startTime + " duration: " + si.duration);
+                Console.WriteLine("+ " + si.displayFilename + " start time: " + si.startTime + " duration: " + si.duration);
             }
 
             // tell each soundInfo the audio sprite they'll belong to

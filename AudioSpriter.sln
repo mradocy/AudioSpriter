@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioSpriter", "AudioSpriter\AudioSpriter.csproj", "{9D7AC8F4-2E28-4FF4-BBC5-87E4EA8313CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core.Base", "..\..\Libs\Core\Core.Base\Core.Base.csproj", "{58A25428-2699-4945-8779-F97F73905B01}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{9D7AC8F4-2E28-4FF4-BBC5-87E4EA8313CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9D7AC8F4-2E28-4FF4-BBC5-87E4EA8313CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9D7AC8F4-2E28-4FF4-BBC5-87E4EA8313CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58A25428-2699-4945-8779-F97F73905B01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58A25428-2699-4945-8779-F97F73905B01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58A25428-2699-4945-8779-F97F73905B01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58A25428-2699-4945-8779-F97F73905B01}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {08D24DF5-AAE5-422C-B091-2486F6064909}
 	EndGlobalSection
 EndGlobal
