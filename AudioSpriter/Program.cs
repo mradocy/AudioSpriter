@@ -330,15 +330,10 @@ namespace AudioSpriter {
             WaveFileWriter.CreateWaveFile16(fullWavName, provider);
 
             // use external ffmpeg to convert to .ogg
-            string strCmdText = "/C call " + '\"' + ffmpegFilePath + '\"' +  " -i \"" + fullWavName + "\" -c:a libvorbis -qscale:a 6 -y \"" + fullOggName + "\"";
-            System.Diagnostics.Process process = new System.Diagnostics.Process();
-            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
-            //startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = strCmdText;
-            process.StartInfo = startInfo;
-            process.Start();
-
+            Console.WriteLine("(ffmpeg start)");
+            IProcessService processService = new ProcessService();
+            processService.StartProcessAndWaitForExit(ffmpegFilePath, "-i \"" + fullWavName + "\" -c:a libvorbis -qscale:a 6 -y \"" + fullOggName + "\"");
+            Console.WriteLine("(ffmpeg end)");
         }
 
     }
