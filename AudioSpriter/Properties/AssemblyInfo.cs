@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("AudioSpriter")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Concatenates .wav files into audio sprites (.mp3 and .ogg)")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("AudioSpriter")]

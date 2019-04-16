@@ -68,7 +68,7 @@ namespace AudioSpriter {
 
             // starting audio spriter
 
-            ConsoleUtils.WriteProgramStart("AudioSpriter");
+            ConsoleUtils.WriteProgramStart();
 
             MediaFoundationApi.Startup(); // for creating mp3s
 
@@ -97,7 +97,7 @@ namespace AudioSpriter {
 
             createAudioSprites(source, destination, baseFileName, wavsDirectory, ffmpegFilePath, sampleRate, numChannels, spacingDuration, maxAudioSpriteDuration);
 
-            ConsoleUtils.WriteProgramEnd("AudioSpriter");
+            ConsoleUtils.WriteProgramEnd();
             ConsoleUtils.PauseIfConsoleWillBeDestroyed();
         }
 
