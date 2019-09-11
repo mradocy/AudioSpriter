@@ -14,12 +14,11 @@ using NAudio.Wave.SampleProviders;
 
 /*
 
-audiospriter -s ./sounds -d "D:/some/output/directory"
-
 Takes all .wav files in the source directory, makes audio sprites and a json file of sound infos and puts them in the output directory
 
 */
 
+// Example args:
 // -s ../../Test/inputs -d ../../Test/outputs -w ../../Test/wav-audiosprites -max 60 -ff "D:/Mark/Gamedev/Tools/ffmpeg/ffmpeg.exe"
 
 namespace AudioSpriter {
@@ -49,7 +48,7 @@ namespace AudioSpriter {
 
             ICommandLineService cmdService = new CommandLineService();
             cmdService.RegisterArg("-s", CommandParamType.ExistingDirectory, "./sourceDirectory", true, "The source directory containing the .wav files.");
-            cmdService.RegisterArg("-d", CommandParamType.ExistingDirectory, "D:/some/output/directory", true, "Output directory to place the created audio sprites and .json info files.");
+            cmdService.RegisterArg("-d", CommandParamType.ExistingDirectory, "\"D:/some/output/directory\"", true, "Output directory to place the created audio sprites and .json info files.");
             cmdService.RegisterArg("-w", CommandParamType.Directory, ".wavDirectory", false, $"Directory to place the .wav versions of the audio sprites.  Default is {DefaultWavDirectory}");
             cmdService.RegisterArg("-max", CommandParamType.Double, "600", false, $"Sets maximum length of an audio sprite, in seconds.  Default is {DefaultAudioSpriteMaxDuration}");
             cmdService.RegisterArg("-ff", CommandParamType.ExistingFilePath, "tools/ffmpeg.exe", false, $"Sets location of ffmpeg.exe, program used to convert .mp3 to .ogg.  Default is {DefaultFFMpegFile}");
