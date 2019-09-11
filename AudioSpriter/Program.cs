@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
 using System.IO;
-using NAudio.MediaFoundation;
 using System.Web.Script.Serialization;
+using Core.Base;
 using Core.Base.Services;
 using Core.Base.Services.Implementations;
-using Core.Base;
+using NAudio.MediaFoundation;
+using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 // https://github.com/naudio/NAudio
 
@@ -26,22 +26,22 @@ namespace AudioSpriter {
 
     class Program {
 
-        const double MP3_DELAY = .0269; // (not exactly the same as 1056d / 44100)
+        private const double Mp3Delay = .0269; // (not exactly the same as 1056d / 44100)
 
         /// <summary>
         /// Default directory to place .wav versions of audio sprites.
         /// </summary>
-        const string DEFAULT_WAV_DIRECTORY = "./wav-audiosprites";
+        private const string DefaultWavDirectory = "./wav-audiosprites";
 
         /// <summary>
         /// Default max duration of audio sprites (in seconds).
         /// </summary>
-        const double DEFAULT_AUDIO_SPRITE_MAX_DURATION = 600;
+        private const double DefaultAudioSpriteMaxDuration = 600;
 
         /// <summary>
         /// Default location of ffmpeg.exe
         /// </summary>
-        const string DEFAULT_FFMPEG_FILE = "./ffmpeg.exe";
+        private const string DefaultFFMpegFile = "./ffmpeg.exe";
 
         public static void Main(string[] args) {
 
@@ -50,21 +50,15 @@ namespace AudioSpriter {
             ICommandLineService cmdService = new CommandLineService();
             cmdService.RegisterArg("-s", CommandParamType.ExistingDirectory, "./sourceDirectory", true, "The source directory containing the .wav files.");
             cmdService.RegisterArg("-d", CommandParamType.ExistingDirectory, "D:/some/output/directory", true, "Output directory to place the created audio sprites and .json info files.");
-            cmdService.RegisterArg("-w", CommandParamType.Directory, ".wavDirectory", false, $"Directory to place the .wav versions of the audio sprites.  Default is {DEFAULT_WAV_DIRECTORY}");
-            cmdService.RegisterArg("-max", CommandParamType.Double, "600", false, $"Sets maximum length of an audio sprite.  Default is {DEFAULT_AUDIO_SPRITE_MAX_DURATION}");
-            cmdService.RegisterArg("-ff", CommandParamType.ExistingFilePath, "tools/ffmpeg.exe", false, $"Sets location of ffmpeg.exe, program used to convert .mp3 to .ogg.  Default is {DEFAULT_FFMPEG_FILE}");
+            cmdService.RegisterArg("-w", CommandParamType.Directory, ".wavDirectory", false, $"Directory to place the .wav versions of the audio sprites.  Default is {DefaultWavDirectory}");
+            cmdService.RegisterArg("-max", CommandParamType.Double, "600", false, $"Sets maximum length of an audio sprite, in seconds.  Default is {DefaultAudioSpriteMaxDuration}");
+            cmdService.RegisterArg("-ff", CommandParamType.ExistingFilePath, "tools/ffmpeg.exe", false, $"Sets location of ffmpeg.exe, program used to convert .mp3 to .ogg.  Default is {DefaultFFMpegFile}");
 
-            if (!cmdService.Process(args))
-            {
+            if (!cmdService.Process(args)) {
                 ConsoleUtils.PauseIfConsoleWillBeDestroyed();
                 return;
             }
-            if (cmdService.GetHelpRequested())
-            {
-                cmdService.DisplayHelpScreen();
-                ConsoleUtils.PauseIfConsoleWillBeDestroyed();
-                return;
-            }
+
 
             // starting audio spriter
 
@@ -75,16 +69,16 @@ namespace AudioSpriter {
             string source = cmdService.GetArgValue("-s");
             string destination = cmdService.GetArgValue("-d");
             string baseFileName = "audioSprite";
-            string wavsDirectory = cmdService.GetArgValue("-w", DEFAULT_WAV_DIRECTORY);
+            string wavsDirectory = cmdService.GetArgValue("-w", DefaultWavDirectory);
             string ffmpegFilePath = cmdService.GetArgValue("-ff", "ffmpeg.exe");
             int sampleRate = 44100;
             int numChannels = 1;
             double spacingDuration = .1;
-            double maxAudioSpriteDuration = cmdService.GetArgValueDouble("-max", DEFAULT_AUDIO_SPRITE_MAX_DURATION);
+            double maxAudioSpriteDuration = cmdService.GetArgValueDouble("-max", DefaultAudioSpriteMaxDuration);
 
             bool error = false;
-            if (spacingDuration <= MP3_DELAY) {
-                Console.WriteLine("Spacing duration must be longer than " + MP3_DELAY + ".");
+            if (spacingDuration <= Mp3Delay) {
+                Console.WriteLine("Spacing duration must be longer than " + Mp3Delay + ".");
                 error = true;
             }
 
@@ -95,7 +89,7 @@ namespace AudioSpriter {
 
             Directory.CreateDirectory(wavsDirectory);
 
-            createAudioSprites(source, destination, baseFileName, wavsDirectory, ffmpegFilePath, sampleRate, numChannels, spacingDuration, maxAudioSpriteDuration);
+            CreateAudioSprites(source, destination, baseFileName, wavsDirectory, ffmpegFilePath, sampleRate, numChannels, spacingDuration, maxAudioSpriteDuration);
 
             ConsoleUtils.WriteProgramEnd();
             ConsoleUtils.PauseIfConsoleWillBeDestroyed();
@@ -115,7 +109,7 @@ namespace AudioSpriter {
             }
         }
 
-        public static void createAudioSprites(string sourceDirectory, string destinationDirectory, string baseFileName, string wavsDirectory, string ffmpegFilePath, int sampleRate, int numChannels, double spacingDuration, double maxAudioSpriteDuration) {
+        public static void CreateAudioSprites(string sourceDirectory, string destinationDirectory, string baseFileName, string wavsDirectory, string ffmpegFilePath, int sampleRate, int numChannels, double spacingDuration, double maxAudioSpriteDuration) {
 
             string[] inputFiles = Directory.GetFiles(sourceDirectory, "*.wav", SearchOption.AllDirectories);
             if (inputFiles.Length <= 0) {
@@ -180,7 +174,7 @@ namespace AudioSpriter {
 
                 if (siSetDuration + si.duration + spacingDuration > maxAudioSpriteDuration) {
                     // sound doesn't fit.  Turn current set into an audio sprite and reset
-                    createAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, ffmpegFilePath, wavsDirectory, spacingDuration);
+                    CreateAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, ffmpegFilePath, wavsDirectory, spacingDuration);
                     siSet.Clear();
                     siSetDuration = spacingDuration;
                     audioSpriteCount++;
@@ -194,7 +188,7 @@ namespace AudioSpriter {
                 
             }
             // create last audio sprite
-            createAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, ffmpegFilePath, wavsDirectory, spacingDuration);
+            CreateAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, ffmpegFilePath, wavsDirectory, spacingDuration);
 
             foreach (AudioFileReader audioReader in audioReaders) {
                 audioReader.Dispose();
@@ -246,7 +240,7 @@ namespace AudioSpriter {
             
         }
 
-        private static void createAudioSprite(List<SoundInfo> soundInfos, int audioSpriteIndex, string destinationDirectory, string baseFileName, string ffmpegFilePath, string wavsDirectory, double spacingDuration) {
+        private static void CreateAudioSprite(List<SoundInfo> soundInfos, int audioSpriteIndex, string destinationDirectory, string baseFileName, string ffmpegFilePath, string wavsDirectory, double spacingDuration) {
             
             string fileNameNoExt = baseFileName + "_" + audioSpriteIndex;
             Console.WriteLine(fileNameNoExt + ":");
@@ -266,8 +260,8 @@ namespace AudioSpriter {
                 providersOgg[i] = soundInfos[i].audioReaderOgg;
             }
 
-            applyOffset(providersMp3, spacingDuration, true);
-            applyOffset(providersOgg, spacingDuration, false);
+            ApplyOffset(providersMp3, spacingDuration, true);
+            ApplyOffset(providersOgg, spacingDuration, false);
 
             // concatinate sounds into one sample provider
             ConcatenatingSampleProvider concatMp3 = new ConcatenatingSampleProvider(providersMp3);
@@ -275,14 +269,14 @@ namespace AudioSpriter {
 
             // write to file
             string mp3File = Path.Combine(destinationDirectory, fileNameNoExt + ".mp3");
-            createMp3File(concatMp3, mp3File);
+            CreateMp3File(concatMp3, mp3File);
             string oggFile = Path.Combine(destinationDirectory, fileNameNoExt + ".ogg");
             string wavFile = Path.Combine(wavsDirectory, fileNameNoExt + ".wav");
-            createOggFile(concatOgg, ffmpegFilePath, wavFile, oggFile);
+            CreateOggFile(concatOgg, ffmpegFilePath, wavFile, oggFile);
 
         }
 
-        private static void applyOffset(ISampleProvider[] providers, double spacingDuration, bool isMp3) {
+        private static void ApplyOffset(ISampleProvider[] providers, double spacingDuration, bool isMp3) {
 
             for (int i = 0; i < providers.Length; i++) {
 
@@ -291,7 +285,7 @@ namespace AudioSpriter {
                 OffsetSampleProvider offsetSampleProvider = new OffsetSampleProvider(sampleProvider);
                 if (i == 0 && isMp3) {
                     // reduce padding to offset that delay .mp3 files have at the start
-                    offsetSampleProvider.DelayBy = TimeSpan.FromSeconds(spacingDuration - MP3_DELAY);
+                    offsetSampleProvider.DelayBy = TimeSpan.FromSeconds(spacingDuration - Mp3Delay);
                 } else {
                     offsetSampleProvider.DelayBy = TimeSpan.FromSeconds(spacingDuration);
                 }
@@ -305,7 +299,7 @@ namespace AudioSpriter {
 
         }
 
-        private static void createMp3File(ISampleProvider provider, string fileName) {
+        private static void CreateMp3File(ISampleProvider provider, string fileName) {
 
             // assumes MediaFoundationApi.Startup() was already called
 
@@ -321,7 +315,7 @@ namespace AudioSpriter {
 
         }
 
-        private static void createOggFile(ISampleProvider provider, string ffmpegFilePath, string wavFileName, string oggFileName) {
+        private static void CreateOggFile(ISampleProvider provider, string ffmpegFilePath, string wavFileName, string oggFileName) {
             
             string fullWavName = Path.GetFullPath(wavFileName);
             string fullOggName = Path.GetFullPath(oggFileName);
