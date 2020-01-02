@@ -20,6 +20,7 @@ Takes all .wav files in the source directory, makes audio sprites and a json fil
 
 // Example args:
 // -s ../../Test/inputs -d ../../Test/outputs -w ../../Test/wav-audiosprites -max 60 -ff "D:/Mark/Gamedev/Tools/ffmpeg/ffmpeg.exe"
+// -s ../../Test/inputs -d ../../Test/outputs -w ../../Test/wav-audiosprites -max 60 -ff "C:/Users/Mark/Gamedev/Tools/ffmpeg/ffmpeg.exe"
 
 namespace AudioSpriter {
 
