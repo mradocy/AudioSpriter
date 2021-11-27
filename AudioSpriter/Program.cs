@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Web.Script.Serialization;
-using Core.Base;
-using Core.Base.Services;
-using Core.Base.Services.Implementations;
+using System.Text.Json;
 using NAudio.MediaFoundation;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using SF.Core;
 
 // https://github.com/naudio/NAudio
 
@@ -19,8 +18,7 @@ Takes all .wav files in the source directory, makes audio sprites and a json fil
 */
 
 // Example args:
-// -s ../../Test/inputs -d ../../Test/outputs -w ../../Test/wav-audiosprites -max 60 -ff "D:/Mark/Gamedev/Tools/ffmpeg/ffmpeg.exe"
-// -s ../../Test/inputs -d ../../Test/outputs -w ../../Test/wav-audiosprites -max 60 -ff "C:/Users/Mark/Gamedev/Tools/ffmpeg/ffmpeg.exe"
+// -s ../../../Test/inputs -d ../../../Test/outputs -w ../../../Test/wav-audiosprites -max 60
 
 namespace AudioSpriter {
 
@@ -41,40 +39,37 @@ namespace AudioSpriter {
         /// <summary>
         /// Default location of ffmpeg.exe
         /// </summary>
-        private const string DefaultFFMpegFile = "./ffmpeg.exe";
+        private const string DefaultFFMpegFile = "ffmpeg.exe";
 
         public static void Main(string[] args) {
 
             // command line processing
+            CommandLine.RegisterArg("-s", CommandLine.ParamType.ExistingDirectory, "./sourceDirectory", true, "The source directory containing the .wav files.");
+            CommandLine.RegisterArg("-d", CommandLine.ParamType.ExistingDirectory, "\"D:/some/output/directory\"", true, "Output directory to place the created audio sprites and .json info files.");
+            CommandLine.RegisterArg("-w", CommandLine.ParamType.Directory, ".wavDirectory", false, $"Directory to place the .wav versions of the audio sprites.  Default is {DefaultWavDirectory}");
+            CommandLine.RegisterArg("-max", CommandLine.ParamType.Double, "600", false, $"Sets maximum length of an audio sprite, in seconds.  Default is {DefaultAudioSpriteMaxDuration}");
+            CommandLine.RegisterArg("-ff", CommandLine.ParamType.ExistingFilePath, "tools/ffmpeg.exe", false, $"Sets location of ffmpeg.exe, program used to convert .mp3 to .ogg.  Default is {DefaultFFMpegFile}");
 
-            ICommandLineService cmdService = new CommandLineService();
-            cmdService.RegisterArg("-s", CommandParamType.ExistingDirectory, "./sourceDirectory", true, "The source directory containing the .wav files.");
-            cmdService.RegisterArg("-d", CommandParamType.ExistingDirectory, "\"D:/some/output/directory\"", true, "Output directory to place the created audio sprites and .json info files.");
-            cmdService.RegisterArg("-w", CommandParamType.Directory, ".wavDirectory", false, $"Directory to place the .wav versions of the audio sprites.  Default is {DefaultWavDirectory}");
-            cmdService.RegisterArg("-max", CommandParamType.Double, "600", false, $"Sets maximum length of an audio sprite, in seconds.  Default is {DefaultAudioSpriteMaxDuration}");
-            cmdService.RegisterArg("-ff", CommandParamType.ExistingFilePath, "tools/ffmpeg.exe", false, $"Sets location of ffmpeg.exe, program used to convert .mp3 to .ogg.  Default is {DefaultFFMpegFile}");
-
-            if (!cmdService.Process(args)) {
+            if (!CommandLine.Process(args)) {
                 ConsoleUtils.PauseIfConsoleWillBeDestroyed();
                 return;
             }
 
-
             // starting audio spriter
 
-            ConsoleUtils.WriteProgramStart();
+            Console.WriteLine("== AudioSpriter Start ==");
 
             MediaFoundationApi.Startup(); // for creating mp3s
 
-            string source = cmdService.GetArgValue("-s");
-            string destination = cmdService.GetArgValue("-d");
+            string source = CommandLine.GetArgValue("-s");
+            string destination = CommandLine.GetArgValue("-d");
             string baseFileName = "audioSprite";
-            string wavsDirectory = cmdService.GetArgValue("-w", DefaultWavDirectory);
-            string ffmpegFilePath = cmdService.GetArgValue("-ff", "ffmpeg.exe");
+            string wavsDirectory = CommandLine.GetArgValue("-w", DefaultWavDirectory);
+            string ffmpegFilePath = CommandLine.GetArgValue("-ff", DefaultFFMpegFile);
             int sampleRate = 44100;
             int numChannels = 1;
             double spacingDuration = .1;
-            double maxAudioSpriteDuration = cmdService.GetArgValueDouble("-max", DefaultAudioSpriteMaxDuration);
+            double maxAudioSpriteDuration = CommandLine.GetArgValueDouble("-max", DefaultAudioSpriteMaxDuration);
 
             bool error = false;
             if (spacingDuration <= Mp3Delay) {
@@ -91,9 +86,11 @@ namespace AudioSpriter {
 
             CreateAudioSprites(source, destination, baseFileName, wavsDirectory, ffmpegFilePath, sampleRate, numChannels, spacingDuration, maxAudioSpriteDuration);
 
-            ConsoleUtils.WriteProgramEnd();
+            Console.WriteLine("== AudioSpriter End ==");
             ConsoleUtils.PauseIfConsoleWillBeDestroyed();
+
         }
+
 
         public class SoundInfo {
             public string file = "";
@@ -102,7 +99,7 @@ namespace AudioSpriter {
             public AudioFileReader audioReaderMp3 = null;
             public AudioFileReader audioReaderOgg = null;
             // to be filled by audio sprites:
-            public double startTime = 0; 
+            public double startTime = 0;
             public int audioSpriteIndex = 0;
             public override string ToString() {
                 return displayFilename + " - audioSpriteIndex: " + audioSpriteIndex + " startTime: " + startTime + " duration: " + duration;
@@ -121,7 +118,7 @@ namespace AudioSpriter {
             string sourceFullPath = Path.GetFullPath(sourceDirectory);
             List<SoundInfo> soundInfos = new List<SoundInfo>();
             List<AudioFileReader> audioReaders = new List<AudioFileReader>();
-            
+
             // create soundInfos
             foreach (string file in inputFiles) {
 
@@ -129,7 +126,7 @@ namespace AudioSpriter {
                 soundInfos.Add(soundInfo);
                 soundInfo.file = file;
                 soundInfo.displayFilename = Path.GetFullPath(file).Substring(sourceFullPath.Length + 1);
-                
+
                 // create audio readers
                 AudioFileReader audioReaderMp3 = new AudioFileReader(file);
                 audioReaders.Add(audioReaderMp3);
@@ -169,7 +166,7 @@ namespace AudioSpriter {
             List<SoundInfo> siSet = new List<SoundInfo>();
             double siSetDuration = spacingDuration;
             int audioSpriteCount = 0;
-            for (int i=0; i < soundInfos.Count; i++) {
+            for (int i = 0; i < soundInfos.Count; i++) {
                 SoundInfo si = soundInfos[i];
 
                 if (siSetDuration + si.duration + spacingDuration > maxAudioSpriteDuration) {
@@ -179,13 +176,13 @@ namespace AudioSpriter {
                     siSetDuration = spacingDuration;
                     audioSpriteCount++;
                 }
-                
+
                 // add to set
                 siSet.Add(si);
                 si.startTime = siSetDuration;
                 siSetDuration += si.duration + spacingDuration;
                 si.audioSpriteIndex = audioSpriteCount;
-                
+
             }
             // create last audio sprite
             CreateAudioSprite(siSet, audioSpriteCount, destinationDirectory, baseFileName, ffmpegFilePath, wavsDirectory, spacingDuration);
@@ -204,24 +201,27 @@ namespace AudioSpriter {
                 asJSON.audioSprites[i] = audioSprite;
             }
             asJSON.sounds = new AudioSpriteJSON.Sound[soundInfos.Count];
-            for (int i=0; i < soundInfos.Count; i++) {
+            for (int i = 0; i < soundInfos.Count; i++) {
                 SoundInfo si = soundInfos[i];
                 AudioSpriteJSON.Sound sound = new AudioSpriteJSON.Sound();
-                sound.filename = si.displayFilename.Replace('\\','/');
+                sound.filename = si.displayFilename.Replace('\\', '/');
                 sound.asIndex = si.audioSpriteIndex;
                 sound.startTime = (float)si.startTime;
                 sound.duration = (float)si.duration;
                 asJSON.sounds[i] = sound;
             }
-            string json = new JavaScriptSerializer().Serialize(asJSON);
+            JsonSerializerOptions serializeOptions = new JsonSerializerOptions() {
+                IncludeFields = true
+            };
+            string json = JsonSerializer.Serialize(asJSON, serializeOptions);
             File.WriteAllText(Path.Combine(destinationDirectory, "audioSprites.json"), json);
-            
+
             Console.WriteLine("Completed with no errors.");
 
         }
 
         private class AudioSpriteJSON {
-            
+
             public AudioSprite[] audioSprites;
 
             public class AudioSprite {
@@ -237,11 +237,11 @@ namespace AudioSpriter {
                 public float startTime;
                 public float duration;
             }
-            
+
         }
 
         private static void CreateAudioSprite(List<SoundInfo> soundInfos, int audioSpriteIndex, string destinationDirectory, string baseFileName, string ffmpegFilePath, string wavsDirectory, double spacingDuration) {
-            
+
             string fileNameNoExt = baseFileName + "_" + audioSpriteIndex;
             Console.WriteLine(fileNameNoExt + ":");
             foreach (SoundInfo si in soundInfos) {
@@ -255,7 +255,7 @@ namespace AudioSpriter {
 
             ISampleProvider[] providersMp3 = new ISampleProvider[soundInfos.Count];
             ISampleProvider[] providersOgg = new ISampleProvider[soundInfos.Count];
-            for (int i=0; i < soundInfos.Count; i++) {
+            for (int i = 0; i < soundInfos.Count; i++) {
                 providersMp3[i] = soundInfos[i].audioReaderMp3;
                 providersOgg[i] = soundInfos[i].audioReaderOgg;
             }
@@ -316,7 +316,7 @@ namespace AudioSpriter {
         }
 
         private static void CreateOggFile(ISampleProvider provider, string ffmpegFilePath, string wavFileName, string oggFileName) {
-            
+
             string fullWavName = Path.GetFullPath(wavFileName);
             string fullOggName = Path.GetFullPath(oggFileName);
 
@@ -325,11 +325,40 @@ namespace AudioSpriter {
 
             // use external ffmpeg to convert to .ogg
             Console.WriteLine("(ffmpeg start)");
-            IProcessService processService = new ProcessService();
-            processService.StartProcessAndWaitForExit(ffmpegFilePath, "-i \"" + fullWavName + "\" -c:a libvorbis -qscale:a 6 -y \"" + fullOggName + "\"");
+
+            // TODO: could running a process be part of SystemUtils?
+
+            // get ffmpeg process file path
+            string ffmpegFileName = SystemUtils.Where(ffmpegFilePath);
+            if (ffmpegFileName == null) {
+                throw new ArgumentException($"Could not find ffmpeg application \"{ffmpegFilePath}\"", nameof(ffmpegFilePath));
+            }
+
+            // run ffmpeg process
+            Process ffmpegProcess = new Process();
+            ffmpegProcess.StartInfo = new ProcessStartInfo() {
+                FileName = ffmpegFileName,
+                Arguments = "-i \"" + fullWavName + "\" -c:a libvorbis -qscale:a 6 -y \"" + fullOggName + "\"",
+            };
+            try {
+                ffmpegProcess.Start();
+            } catch (System.ComponentModel.Win32Exception ex) {
+                throw new Exception($"Error running ffmpeg process: \"{ex.Message.Trim()}\".", ex);
+            }
+
+            // wait for process to complete
+            //if (!ffmpegProcess.WaitForExit((int)(ZipProcessTimeout * 1000))) {
+            //    ffmpegProcess.Kill();
+            //    throw new ZipException("Killed 7-Zip process because it is taking too long.");
+            //}
+            ffmpegProcess.WaitForExit();
+            int exitCode = ffmpegProcess.ExitCode;
+            if (exitCode != 0) {
+                throw new Exception($"ffmpeg process failed.  Exit code: {exitCode}");
+            }
+
             Console.WriteLine("(ffmpeg end)");
         }
 
     }
-
 }
